@@ -15,9 +15,29 @@ public class ExchangeRateService {
      * @return ExchangeRateWrapper containing the response data
      */
     public static ExchangeRateWrapper getLatestRates() {
-        // TODO: Implement the method to make a callout to the Exchange Rate API
+        String responseBody = '';
+        Http http = new Http();
         
-        return null; // Replace with actual implementation
+        HttpRequest request = new HttpRequest();
+        request.setEndpoint('callout:ExchangeRate_API' + '/latest/'+ BASE_CURRENCY);
+        request.setMethod('GET');
+
+        try{
+            HttpResponse response = http.send(request);
+            if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
+                responseBody = response.getBody();
+            }else{
+                throw new ExchangeRateException(
+                'Error: Received status code: ' + response.getStatusCode() + ' - ' + response.getBody()
+            );
+            }
+        }catch(Exception e){
+            throw new ExchangeRateException(
+                'Error: ' + e.getMessage()
+            );
+        }
+        
+        return ExchangeRateWrapper.parse(responseBody);
     }
     
     /**
@@ -26,9 +46,10 @@ public class ExchangeRateService {
      * @return List<Exchange_Rate__c> The list of records created or updated
      */
     public static List<Exchange_Rate__c> processRates(ExchangeRateWrapper rateData) {
-        // TODO: Implement the method to process rates and create/update records
+        List<Exchange_Rate__c> exchangeRates = rateData.toExchangeRates();
+        upsert exchangeRates External_ID__c;
         
-        return null; // Replace with actual implementation
+        return exchangeRates;
     }
     
     /**
@@ -36,11 +57,14 @@ public class ExchangeRateService {
      * @return List<Exchange_Rate__c> The list of records created or updated
      */
     public static List<Exchange_Rate__c> updateExchangeRates() {
-        // TODO: Implement the method to get and process rates
-        // 1. Call getLatestRates to retrieve the data
-        // 2. Call processRates to create/update records
-        // 3. Return the processed records
         
-        return null; // Replace with actual implementation
+        ExchangeRateWrapper exchangeRateToInsert = getLatestRates();
+        List<Exchange_Rate__c> processedRates = processRates(exchangeRateToInsert);
+        
+        return processedRates;
     }
+
+
+public class ExchangeRateException extends Exception{}
+
 }
